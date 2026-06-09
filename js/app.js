@@ -1,0 +1,360 @@
+// ═══════════════════════════════════════════════════════════════
+// App Module - Initialization, Navigation, Global Events
+// ═══════════════════════════════════════════════════════════════
+
+const App = (() => {
+
+    let currentTab = 'dashboard';
+
+    // ── Initialize ───────────────────────────────────────────
+
+    function init() {
+        // Load data or create defaults
+        if (!Store.load()) {
+            Store.initDefaultData();
+        }
+
+        // Ensure we have a valid project selected
+        if (!Store.getCurrentProject()) {
+            const projects = Store.getProjects();
+            if (projects.length > 0) {
+                Store.setCurrentProject(projects[0].id);
+            }
+        }
+
+        renderProjectSelector();
+        renderYearTabs();
+        bindGlobalEvents();
+        navigateTo('dashboard');
+        updateLockUI();
+    }
+
+    // ── Navigation ───────────────────────────────────────────
+
+    function navigateTo(tab) {
+        currentTab = tab;
+
+        // Update nav active state
+        document.querySelectorAll('.sidebar__nav-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.tab === tab);
+        });
+
+        // Toggle header visibility based on consolidated view
+        const headerLeft = document.querySelector('.header__left');
+        const headerYearTabs = document.getElementById('year-tabs');
+        if (tab === 'integrated') {
+            if (headerLeft) headerLeft.style.visibility = 'hidden';
+            if (headerYearTabs) headerYearTabs.style.visibility = 'hidden';
+        } else {
+            if (headerLeft) headerLeft.style.visibility = 'visible';
+            if (headerYearTabs) headerYearTabs.style.visibility = 'visible';
+        }
+
+        // Render content
+        if (tab === 'dashboard') {
+            Dashboard.render();
+        } else if (tab === 'integrated') {
+            IntegratedDashboard.render();
+        } else if (tab === 'expenses') {
+            Expenses.render();
+        }
+        updateLockUI();
+    }
+
+    function getCurrentTab() {
+        return currentTab;
+    }
+
+    function refresh() {
+        renderProjectSelector();
+        renderYearTabs();
+        navigateTo(currentTab);
+    }
+
+    // ── Project Selector ─────────────────────────────────────
+
+    function renderProjectSelector() {
+        const select = document.getElementById('project-select');
+        if (!select) return;
+
+        const projects = Store.getProjects();
+        const currentId = Store.getCurrentProjectId();
+
+        if (projects.length === 0) {
+            select.innerHTML = '<option value="">과제가 없습니다</option>';
+            return;
+        }
+
+        select.innerHTML = projects.map(p =>
+            `<option value="${p.id}" ${p.id === currentId ? 'selected' : ''}>${p.name}</option>`
+        ).join('');
+    }
+
+    // ── Year Tabs ────────────────────────────────────────────
+
+    function renderYearTabs() {
+        const container = document.getElementById('year-tabs');
+        if (!container) return;
+
+        const project = Store.getCurrentProject();
+        if (!project || !project.years || project.years.length === 0) {
+            container.innerHTML = '<span style="padding:10px;color:var(--text-muted);font-size:0.85rem">연차가 없습니다</span>';
+            return;
+        }
+
+        const currentYearId = Store.getCurrentYearId();
+
+        container.innerHTML = project.years.map(y =>
+            `<button class="year-tab ${y.id === currentYearId ? 'active' : ''}" data-year-id="${y.id}">
+                ${y.label}
+                ${y.startDate ? `<span style="font-size:0.7rem;color:var(--text-muted);margin-left:4px">(${y.startDate.slice(0, 4)})</span>` : ''}
+            </button>`
+        ).join('');
+    }
+
+    // ── Modal System ─────────────────────────────────────────
+
+    function showModal(html) {
+        const overlay = document.getElementById('modal-overlay');
+        const container = document.getElementById('modal-container');
+        container.innerHTML = html;
+        overlay.classList.add('active');
+
+        // Close on overlay click
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeModal();
+        });
+
+        // Close on Escape
+        const escHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+    }
+
+    function closeModal() {
+        const overlay = document.getElementById('modal-overlay');
+        overlay.classList.remove('active');
+        document.getElementById('modal-container').innerHTML = '';
+    }
+
+    // ── Confirm Dialog ───────────────────────────────────────
+
+    function showConfirm(title, message, onConfirm, onCancel) {
+        const overlay = document.createElement('div');
+        overlay.className = 'confirm-overlay';
+        overlay.innerHTML = `
+            <div class="confirm-dialog">
+                <div class="confirm-dialog__icon">⚠️</div>
+                <div class="confirm-dialog__title">${title}</div>
+                <div class="confirm-dialog__message">${message.replace(/\n/g, '<br>')}</div>
+                <div class="confirm-dialog__actions">
+                    <button class="btn btn--ghost" id="confirm-cancel">취소</button>
+                    <button class="btn btn--danger" id="confirm-ok">확인</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        overlay.querySelector('#confirm-ok').addEventListener('click', () => {
+            overlay.remove();
+            if (onConfirm) onConfirm();
+        });
+
+        overlay.querySelector('#confirm-cancel').addEventListener('click', () => {
+            overlay.remove();
+            if (onCancel) onCancel();
+        });
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.remove();
+                if (onCancel) onCancel();
+            }
+        });
+    }
+
+    // ── Toast Notifications ──────────────────────────────────
+
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast toast--${type}`;
+
+        const icons = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        };
+
+        toast.innerHTML = `<span>${icons[type] || icons.info}</span><span>${message}</span>`;
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'toastOut 0.3s ease-out forwards';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    function showUnlockModal() {
+        const html = `
+        <div class="modal__header">
+            <h3 class="modal__title">🔑 설정 잠금 해제</h3>
+            <button class="modal__close" id="modal-close">&times;</button>
+        </div>
+        <div class="modal__body">
+            <div class="form-group">
+                <label class="form-label">관리자 비밀번호</label>
+                <input type="password" class="form-input" id="lock-password-input" placeholder="비밀번호를 입력하세요">
+                <div class="form-hint" style="color:var(--text-muted);margin-top:6px">기본 비밀번호는 <strong>1234</strong> 입니다.</div>
+            </div>
+        </div>
+        <div class="modal__footer">
+            <button class="btn btn--ghost" id="modal-cancel">취소</button>
+            <button class="btn btn--primary" id="btn-lock-confirm">확인</button>
+        </div>`;
+
+        showModal(html);
+
+        const pwInput = document.getElementById('lock-password-input');
+        pwInput.focus();
+
+        function tryUnlock() {
+            const pw = pwInput.value;
+            if (Store.checkPassword(pw)) {
+                Store.setLocked(false);
+                closeModal();
+                updateLockUI();
+                showToast('🔓 설정 잠금이 해제되었습니다.', 'success');
+            } else {
+                showToast('❌ 비밀번호가 올바르지 않습니다.', 'error');
+                pwInput.value = '';
+                pwInput.focus();
+            }
+        }
+
+        document.getElementById('btn-lock-confirm').addEventListener('click', tryUnlock);
+        pwInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') tryUnlock();
+        });
+        document.getElementById('modal-cancel').addEventListener('click', closeModal);
+        document.getElementById('modal-close').addEventListener('click', closeModal);
+    }
+
+    function updateLockUI() {
+        const locked = Store.isLocked();
+        const body = document.body;
+        const lockBtn = document.getElementById('btn-toggle-lock');
+
+        if (locked) {
+            body.classList.add('is-locked');
+        } else {
+            body.classList.remove('is-locked');
+        }
+
+        if (lockBtn) {
+            lockBtn.innerHTML = locked
+                ? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> <span>🔒 설정 잠김</span>`
+                : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> <span>🔓 잠금 해제됨</span>`;
+        }
+
+        const configButtonIds = [
+            'btn-add-project', 'btn-edit-project', 'btn-delete-project',
+            'btn-rcms-upload', 'btn-image-budget', 'btn-import', 'btn-restore'
+        ];
+
+        configButtonIds.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.disabled = locked;
+            }
+        });
+    }
+
+    // ── Global Event Binding ─────────────────────────────────
+
+    function bindGlobalEvents() {
+        // Sidebar navigation
+        document.querySelectorAll('.sidebar__nav-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const tab = item.dataset.tab;
+                if (tab) {
+                    if (tab === 'expenses') Expenses.resetFilters();
+                    navigateTo(tab);
+                }
+            });
+        });
+
+        // Project selector
+        document.getElementById('project-select').addEventListener('change', (e) => {
+            Store.setCurrentProject(e.target.value);
+            renderYearTabs();
+            navigateTo(currentTab);
+        });
+
+        // Year tabs (delegation)
+        document.getElementById('year-tabs').addEventListener('click', (e) => {
+            const tab = e.target.closest('.year-tab');
+            if (tab) {
+                Store.setCurrentYear(tab.dataset.yearId);
+                renderYearTabs();
+                if (currentTab === 'expenses') Expenses.resetFilters();
+                navigateTo(currentTab);
+            }
+        });
+
+        // Project management buttons
+        document.getElementById('btn-add-project').addEventListener('click', Projects.showAddModal);
+        document.getElementById('btn-edit-project').addEventListener('click', Projects.showEditModal);
+        document.getElementById('btn-delete-project').addEventListener('click', Projects.deleteCurrentProject);
+
+        // Export / Import buttons
+        document.getElementById('btn-export-dashboard').addEventListener('click', Export.exportDashboard);
+        document.getElementById('btn-export-expenses').addEventListener('click', Export.exportExpenses);
+        document.getElementById('btn-import').addEventListener('click', Export.showImportModal);
+        document.getElementById('btn-backup').addEventListener('click', Export.backupData);
+        document.getElementById('btn-restore').addEventListener('click', Export.showRestoreModal);
+        document.getElementById('btn-rcms-upload').addEventListener('click', Export.showRCMSImportModal);
+        document.getElementById('btn-image-budget').addEventListener('click', Export.showImageBudgetModal);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+1: Dashboard, Ctrl+2: Integrated Dashboard, Ctrl+3: Expenses
+            if (e.ctrlKey && e.key === '1') { e.preventDefault(); navigateTo('dashboard'); }
+            if (e.ctrlKey && e.key === '2') { e.preventDefault(); navigateTo('integrated'); }
+            if (e.ctrlKey && e.key === '3') { e.preventDefault(); navigateTo('expenses'); }
+            // Ctrl+N: New expense (when on expenses tab)
+            if (e.ctrlKey && e.key === 'n' && currentTab === 'expenses') {
+                e.preventDefault();
+                Expenses.showExpenseModal();
+            }
+        });
+
+        // Settings Lock toggle
+        const toggleLockBtn = document.getElementById('btn-toggle-lock');
+        if (toggleLockBtn) {
+            toggleLockBtn.addEventListener('click', () => {
+                if (Store.isLocked()) {
+                    showUnlockModal();
+                } else {
+                    Store.setLocked(true);
+                    updateLockUI();
+                    showToast('🔒 설정 편집이 잠겼습니다.', 'info');
+                }
+            });
+        }
+    }
+
+    return {
+        init, navigateTo, getCurrentTab, refresh,
+        showModal, closeModal, showConfirm, showToast, updateLockUI
+    };
+})();
+
+// ── Boot ──────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', App.init);
