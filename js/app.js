@@ -347,19 +347,14 @@ const App = (() => {
             statusText.textContent = message || '에러 발생';
             statusText.classList.add('error');
             
-            // 현재 로그인 여부에 맞춰 적절한 UI 상태 노출
-            const config = Store.getGDriveConfig();
-            if (!config.clientId) {
-                if (noIdState) noIdState.style.display = 'block';
-                if (loggedOutState) loggedOutState.style.display = 'none';
-                if (loggedInState) loggedInState.style.display = 'none';
-            } else if (GDrive.isLoggedIn()) {
-                if (noIdState) noIdState.style.display = 'none';
+            // DEFAULT_CLIENT_ID가 항상 존재하므로 절대 noid-state를 보여주지 않음
+            // 로그인 여부에 따라 적절한 상태 표시
+            if (noIdState) noIdState.style.display = 'none';
+            if (GDrive.isLoggedIn && GDrive.isLoggedIn()) {
                 if (loggedOutState) loggedOutState.style.display = 'none';
                 if (loggedInState) loggedInState.style.display = 'block';
                 if (userEmail && userInfo) userEmail.textContent = userInfo.email;
             } else {
-                if (noIdState) noIdState.style.display = 'none';
                 if (loggedOutState) loggedOutState.style.display = 'block';
                 if (loggedInState) loggedInState.style.display = 'none';
             }
