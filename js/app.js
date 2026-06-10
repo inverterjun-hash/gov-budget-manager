@@ -341,12 +341,6 @@ const App = (() => {
                 fileIdDisplay.title = '클릭하면 복사됩니다: ' + fid;
             }
 
-            // 공유 파일 ID 입력창에 현재 설정값 표시
-            const sharedInput = document.getElementById('input-shared-file-id');
-            if (sharedInput && GDrive.getSharedFileId) {
-                sharedInput.value = GDrive.getSharedFileId() || '';
-            }
-
             // 공유 파일 상태 표시
             const statusEl = document.getElementById('gdrive-shared-status');
             if (statusEl && GDrive.getSharedFileId) {
