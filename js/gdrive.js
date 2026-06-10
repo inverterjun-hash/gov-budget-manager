@@ -13,6 +13,7 @@ const GDrive = (() => {
     };
     let userInfo = null;
     let onStateChangeCallback = null;
+    let _initialized = false;
 
     // 현재 토큰이 유효한지 체크
     function isLoggedIn() {
@@ -24,25 +25,40 @@ const GDrive = (() => {
         return null;
     }
 
+    // Google SDK 로드 완료 후 자동 호출되는 전역 콜백 (index.html의 data-onload에서 호출)
+    function onGoogleScriptLoad() {
+        if (!_initialized) {
+            init();
+        }
+    }
+
     // Google Drive SDK/TokenClient 초기화
     function init(onStateChange) {
         if (onStateChange) {
             onStateChangeCallback = onStateChange;
         }
 
+        // DEFAULT_CLIENT_ID가 있으므로 항상 사용 가능
         const config = Store.getGDriveConfig();
         const clientId = config.clientId || DEFAULT_CLIENT_ID;
+
+        // clientId가 없는 경우는 사실상 없지만, 안전하게 처리
         if (!clientId) {
             triggerStateChange('no_client_id');
             return;
         }
 
         try {
+            // Google Identity Services SDK가 아직 로드되지 않은 경우:
+            // SDK가 로드되면 window.onGoogleScriptLoad가 호출되어 재시도함
             if (typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
-                console.warn('Google Identity Services SDK가 로드되지 않았습니다.');
-                triggerStateChange('sdk_not_loaded');
+                console.warn('Google Identity Services SDK가 아직 로드되지 않았습니다. SDK 로드 후 자동 초기화됩니다.');
+                // 로그인 대기 UI 표시 (no_client_id 아님)
+                triggerStateChange('logged_out');
                 return;
             }
+
+            _initialized = true;
 
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: clientId,
@@ -422,11 +438,20 @@ const GDrive = (() => {
 
     return {
         init, login, logout, sync, autoUpload, isLoggedIn, getAccessToken, getUserEmail, checkNewerVersion,
+        onGoogleScriptLoad,
         setClientId: function(clientId) {
             const config = Store.getGDriveConfig();
             Store.saveGDriveConfig(clientId, config.fileId, config.lastSyncTime);
             // 클라이언트 ID가 변경되었으므로 초기화 재시행
+            _initialized = false;
             init();
         }
     };
 })();
+
+// Google Identity Services SDK 로드 완료 시 자동 호출
+window.onGoogleScriptLoad = function() {
+    if (typeof GDrive !== 'undefined') {
+        GDrive.onGoogleScriptLoad();
+    }
+};
