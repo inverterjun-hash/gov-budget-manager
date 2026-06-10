@@ -47,7 +47,7 @@ const Store = (() => {
             if (raw) {
                 data = JSON.parse(raw);
                 if (!data.categoryGroups) data.categoryGroups = [];
-                if (data.isLocked === undefined) data.isLocked = true;
+                data.isLocked = true; // 보안을 위해 프로그램 구동 시 항상 잠금 상태로 설정
                 if (data.password === undefined) data.password = '1234';
                 if (data.gdriveClientId === undefined) data.gdriveClientId = '';
                 if (data.gdriveFileId === undefined) data.gdriveFileId = '';
