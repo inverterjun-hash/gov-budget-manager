@@ -157,6 +157,15 @@
 
         <!-- ═══ Main Content ═══ -->
         <main class="main">
+            <!-- Warning Banner for Sync Conflict -->
+            <div id="sync-warning-banner" class="sync-warning-banner" style="display: none;">
+                <span style="display:flex;align-items:center;gap:6px">
+                    <span>⚠️</span>
+                    <span>다른 사용자(<strong id="sync-warning-email">email@gmail.com</strong>)가 구글 드라이브 예산 파일을 업데이트했습니다. 최신 데이터를 반영하려면 동기화해 주세요.</span>
+                </span>
+                <button id="btn-sync-banner-trigger" class="btn btn--primary btn--sm" style="margin-left:14px;padding:4px 10px;font-size:0.78rem;">지금 동기화</button>
+            </div>
+
             <!-- Header -->
             <header class="header">
                 <div class="header__left">

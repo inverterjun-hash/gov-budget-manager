@@ -217,6 +217,7 @@ const GDrive = (() => {
                 await uploadFileContent(fileId);
                 const nowStr = new Date().toLocaleString();
                 Store.saveGDriveConfig(config.clientId, fileId, nowStr);
+                await updateSyncTimestamp(fileId);
                 triggerStateChange('success', `동기화 완료: ${nowStr}`);
                 return;
             }
@@ -229,6 +230,7 @@ const GDrive = (() => {
                 await uploadFileContent(fileId);
                 const nowStr = new Date().toLocaleString();
                 Store.saveGDriveConfig(config.clientId, fileId, nowStr);
+                await updateSyncTimestamp(fileId);
                 triggerStateChange('success', `업로드 완료: ${nowStr}`);
                 return;
             }
@@ -240,6 +242,7 @@ const GDrive = (() => {
                 await uploadFileContent(fileId);
                 const nowStr = new Date().toLocaleString();
                 Store.saveGDriveConfig(config.clientId, fileId, nowStr);
+                await updateSyncTimestamp(fileId);
                 triggerStateChange('success', `초기 업로드 완료: ${nowStr}`);
                 return;
             }
@@ -257,6 +260,7 @@ const GDrive = (() => {
                 Store.importData(remoteData);
                 const nowStr = new Date().toLocaleString();
                 Store.saveGDriveConfig(config.clientId, fileId, nowStr);
+                await updateSyncTimestamp(fileId);
                 triggerStateChange('success', `구글 드라이브 데이터 불러옴: ${nowStr}`);
                 
                 // UI 새로고침
@@ -279,6 +283,7 @@ const GDrive = (() => {
                 Store.importData(remoteData);
                 const nowStr = new Date().toLocaleString();
                 Store.saveGDriveConfig(config.clientId, fileId, nowStr);
+                await updateSyncTimestamp(fileId);
                 triggerStateChange('success', `가져오기 완료: ${nowStr}`);
                 
                 if (typeof App !== 'undefined' && App.refresh) {
@@ -290,6 +295,7 @@ const GDrive = (() => {
                 await uploadFileContent(fileId);
                 const nowStr = new Date().toLocaleString();
                 Store.saveGDriveConfig(config.clientId, fileId, nowStr);
+                await updateSyncTimestamp(fileId);
                 triggerStateChange('success', `내보내기 완료: ${nowStr}`);
             }
 
@@ -320,6 +326,12 @@ const GDrive = (() => {
         delete cleanData.gdriveFileId;
         delete cleanData.lastSyncTime;
 
+        // 최종 편집자 정보 주입
+        if (userInfo && userInfo.email) {
+            cleanData.lastEditor = userInfo.email;
+            cleanData.lastEditTime = new Date().toISOString();
+        }
+
         await driveApiRequest(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -337,6 +349,7 @@ const GDrive = (() => {
             await uploadFileContent(config.fileId);
             const nowStr = new Date().toLocaleString();
             Store.saveGDriveConfig(config.clientId, config.fileId, nowStr);
+            await updateSyncTimestamp(config.fileId);
             triggerStateChange('success', `자동 저장됨: ${nowStr}`);
         } catch (e) {
             console.error('자동 업로드 실패:', e);
@@ -344,8 +357,56 @@ const GDrive = (() => {
         }
     }
 
+    // 구글 드라이브 최종 서버 동기화 시각 업데이트
+    async function updateSyncTimestamp(fileId) {
+        try {
+            const res = await driveApiRequest(`/files/${fileId}?fields=modifiedTime`);
+            const meta = await res.json();
+            if (meta.modifiedTime) {
+                sessionStorage.setItem('gdrive_last_sync_timestamp', meta.modifiedTime);
+            }
+        } catch (e) {
+            console.error('동기화 타임스탬프 갱신 실패:', e);
+        }
+    }
+
+    // 서버에 더 최신 파일이 올라와 있는지 검사
+    async function checkNewerVersion() {
+        if (!isLoggedIn()) return null;
+        const config = Store.getGDriveConfig();
+        if (!config.fileId) return null;
+
+        try {
+            const res = await driveApiRequest(`/files/${config.fileId}?fields=modifiedTime,lastModifyingUser`);
+            const file = await res.json();
+            
+            const lastSync = sessionStorage.getItem('gdrive_last_sync_timestamp');
+            if (file.modifiedTime && lastSync) {
+                const remoteTime = new Date(file.modifiedTime).getTime();
+                const localSyncTime = new Date(lastSync).getTime();
+                
+                // 원격 서버 파일 시각이 로컬 동기화 시각보다 2초 이상 미래인 경우 새 버전 발견
+                if (remoteTime > localSyncTime + 2000) {
+                    const editorEmail = file.lastModifyingUser ? file.lastModifyingUser.emailAddress : '다른 사용자';
+                    return {
+                        newer: true,
+                        email: editorEmail,
+                        time: file.modifiedTime
+                    };
+                }
+            }
+        } catch (e) {
+            console.warn('새 버전 확인 실패:', e);
+        }
+        return null;
+    }
+
+    function getUserEmail() {
+        return userInfo ? userInfo.email : '';
+    }
+
     return {
-        init, login, logout, sync, autoUpload, isLoggedIn, getAccessToken,
+        init, login, logout, sync, autoUpload, isLoggedIn, getAccessToken, getUserEmail, checkNewerVersion,
         setClientId: function(clientId) {
             const config = Store.getGDriveConfig();
             Store.saveGDriveConfig(clientId, config.fileId, config.lastSyncTime);

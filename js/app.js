@@ -5,6 +5,7 @@
 const App = (() => {
 
     let currentTab = 'dashboard';
+    let presenceCheckInterval = null;
 
     // ── Initialize ───────────────────────────────────────────
 
@@ -31,6 +32,7 @@ const App = (() => {
         // 구글 드라이브 연동 초기화
         if (typeof GDrive !== 'undefined') {
             GDrive.init(updateGDriveUI);
+            startPresenceCheck();
         }
     }
 
@@ -323,6 +325,10 @@ const App = (() => {
             if (loggedOutState) loggedOutState.style.display = 'none';
             if (loggedInState) loggedInState.style.display = 'block';
             if (userEmail && userInfo) userEmail.textContent = userInfo.email;
+
+            // 동기화 완료 시 상단 경고 배너 숨김
+            const banner = document.getElementById('sync-warning-banner');
+            if (banner) banner.style.display = 'none';
         } else if (state === 'logged_in') {
             statusText.textContent = '구글 로그인 완료';
             statusText.classList.add('success');
@@ -398,6 +404,24 @@ const App = (() => {
         });
         document.getElementById('modal-cancel').addEventListener('click', closeModal);
         document.getElementById('modal-close').addEventListener('click', closeModal);
+    }
+
+    // 구글 드라이브 백그라운드 변경 사항 감지
+    function startPresenceCheck() {
+        if (presenceCheckInterval) clearInterval(presenceCheckInterval);
+        presenceCheckInterval = setInterval(async () => {
+            if (typeof GDrive !== 'undefined' && GDrive.isLoggedIn && GDrive.isLoggedIn()) {
+                const updateNeeded = await GDrive.checkNewerVersion();
+                const banner = document.getElementById('sync-warning-banner');
+                const emailEl = document.getElementById('sync-warning-email');
+                if (updateNeeded && updateNeeded.newer) {
+                    if (banner) banner.style.display = 'flex';
+                    if (emailEl) emailEl.textContent = updateNeeded.email;
+                } else {
+                    if (banner) banner.style.display = 'none';
+                }
+            }
+        }, 60000); // 1분 주기
     }
 
     // ── Global Event Binding ─────────────────────────────────
@@ -488,6 +512,18 @@ const App = (() => {
 
         const btnGDriveLogout = document.getElementById('btn-gdrive-logout');
         if (btnGDriveLogout) btnGDriveLogout.addEventListener('click', () => GDrive.logout());
+
+        // Warning Banner Sync Action
+        const btnSyncBannerTrigger = document.getElementById('btn-sync-banner-trigger');
+        if (btnSyncBannerTrigger) {
+            btnSyncBannerTrigger.addEventListener('click', async () => {
+                const banner = document.getElementById('sync-warning-banner');
+                if (banner) banner.style.display = 'none';
+                if (typeof GDrive !== 'undefined') {
+                    await GDrive.sync();
+                }
+            });
+        }
     }
 
     return {
