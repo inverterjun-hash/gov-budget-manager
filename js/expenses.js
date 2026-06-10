@@ -18,6 +18,7 @@ const Expenses = (() => {
         const content = document.getElementById('content');
         const categories = Store.getCategories();
         const expenses = Store.getExpenses(null, null, filters);
+        const isLoggedIn = typeof GDrive !== 'undefined' && GDrive.isLoggedIn && GDrive.isLoggedIn();
 
         content.innerHTML = `
             <div class="tab-info">
@@ -26,13 +27,13 @@ const Expenses = (() => {
                     지출 내역
                 </h2>
                 <div class="tab-info__actions">
-                    <button class="btn btn--primary" id="btn-add-expense">
+                    <button class="btn btn--primary" id="btn-add-expense" ${!isLoggedIn ? 'disabled title="구글 로그인이 필요합니다"' : ''}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                         지출 추가
                     </button>
                 </div>
             </div>
-
+            
             <div class="section-card">
                 <!-- Filter Bar -->
                 ${renderFilterBar(categories)}
@@ -47,9 +48,9 @@ const Expenses = (() => {
 
                 <!-- Table -->
                 <div class="section-card__body">
-                    ${renderExpenseTable(expenses, categories)}
+                    ${renderExpenseTable(expenses, categories, isLoggedIn)}
                 </div>
-            </div>
+            </div>`;
         `;
 
         bindExpenseEvents();
@@ -123,14 +124,14 @@ const Expenses = (() => {
         </div>`;
     }
 
-    function renderExpenseTable(expenses, categories) {
+    function renderExpenseTable(expenses, categories, isLoggedIn = true) {
         if (expenses.length === 0) {
             return `
             <div class="empty-state">
                 <div class="empty-state__icon">📋</div>
                 <div class="empty-state__title">지출 내역이 없습니다</div>
                 <div class="empty-state__desc">새로운 지출을 추가하여 예산을 관리하세요.</div>
-                <button class="btn btn--primary" id="btn-add-expense-empty">+ 지출 추가</button>
+                <button class="btn btn--primary" id="btn-add-expense-empty" ${!isLoggedIn ? 'disabled title="구글 로그인이 필요합니다"' : ''}>+ 지출 추가</button>
             </div>`;
         }
 
@@ -151,7 +152,7 @@ const Expenses = (() => {
             <tr class="${exp.transferred ? 'row-transferred' : ''}" data-expense-id="${exp.id}">
                 <td class="text-center">
                     <input type="checkbox" class="row-checkbox expense-checkbox" data-id="${exp.id}"
-                        ${selectedIds.has(exp.id) ? 'checked' : ''}>
+                        ${selectedIds.has(exp.id) ? 'checked' : ''} ${!isLoggedIn ? 'disabled' : ''}>
                 </td>
                 <td style="white-space:nowrap">${exp.date}</td>
                 <td>
@@ -172,15 +173,15 @@ const Expenses = (() => {
                 <td>${escapeHtml(exp.manager)}</td>
                 <td class="text-right amount-cell" style="font-weight:600">${Store.formatCurrency(exp.amount)}</td>
                 <td class="text-center">
-                    <button class="transfer-toggle ${exp.transferred ? 'transferred' : ''}" data-id="${exp.id}" title="${exp.transferred ? '이체완료됨 (클릭하여 취소)' : '클릭하여 이체완료'}">
+                    <button class="transfer-toggle ${exp.transferred ? 'transferred' : ''}" data-id="${exp.id}" title="${exp.transferred ? '이체완료됨 (클릭하여 취소)' : '클릭하여 이체완료'}" ${!isLoggedIn ? 'disabled style="cursor:not-allowed;opacity:0.55"' : ''}>
                         ${exp.transferred ? 'O' : ''}
                     </button>
                 </td>
                 <td class="text-center">
-                    <button class="btn btn--sm btn--ghost btn-edit-expense" data-id="${exp.id}" title="수정" style="padding:4px 8px">
+                    <button class="btn btn--sm btn--ghost btn-edit-expense" data-id="${exp.id}" title="수정" style="padding:4px 8px" ${!isLoggedIn ? 'disabled' : ''}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </button>
-                    <button class="btn btn--sm btn--danger-ghost btn-delete-expense" data-id="${exp.id}" title="삭제" style="padding:4px 8px">
+                    <button class="btn btn--sm btn--danger-ghost btn-delete-expense" data-id="${exp.id}" title="삭제" style="padding:4px 8px" ${!isLoggedIn ? 'disabled' : ''}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                 </td>
@@ -222,6 +223,13 @@ const Expenses = (() => {
     // ── Add / Edit Expense Modal ─────────────────────────────
 
     function showExpenseModal(expenseId) {
+        if (typeof GDrive !== 'undefined' && GDrive.isLoggedIn && !GDrive.isLoggedIn()) {
+            if (typeof App !== 'undefined' && App.showToast) {
+                App.showToast('⚠️ 구글 로그인이 필요합니다. 먼저 로그인해 주세요.', 'warning');
+            }
+            return;
+        }
+
         const isEdit = !!expenseId;
         const expense = isEdit ? Store.getExpense(expenseId) : null;
         const categories = Store.getCategories();
@@ -402,6 +410,10 @@ const Expenses = (() => {
         content.addEventListener('click', (e) => {
             const toggle = e.target.closest('.transfer-toggle');
             if (toggle) {
+                if (typeof GDrive !== 'undefined' && GDrive.isLoggedIn && !GDrive.isLoggedIn()) {
+                    App.showToast('⚠️ 구글 로그인이 필요합니다.', 'warning');
+                    return;
+                }
                 const id = toggle.dataset.id;
                 const newState = Store.toggleTransfer(id);
 
@@ -429,6 +441,10 @@ const Expenses = (() => {
             // Edit button
             const editBtn = e.target.closest('.btn-edit-expense');
             if (editBtn) {
+                if (typeof GDrive !== 'undefined' && GDrive.isLoggedIn && !GDrive.isLoggedIn()) {
+                    App.showToast('⚠️ 구글 로그인이 필요합니다.', 'warning');
+                    return;
+                }
                 showExpenseModal(editBtn.dataset.id);
                 return;
             }
@@ -436,6 +452,10 @@ const Expenses = (() => {
             // Delete button
             const deleteBtn = e.target.closest('.btn-delete-expense');
             if (deleteBtn) {
+                if (typeof GDrive !== 'undefined' && GDrive.isLoggedIn && !GDrive.isLoggedIn()) {
+                    App.showToast('⚠️ 구글 로그인이 필요합니다.', 'warning');
+                    return;
+                }
                 const id = deleteBtn.dataset.id;
                 const exp = Store.getExpense(id);
                 App.showConfirm(
@@ -477,6 +497,10 @@ const Expenses = (() => {
         // Bulk actions
         const bulkTransfer = document.getElementById('btn-bulk-transfer');
         if (bulkTransfer) bulkTransfer.addEventListener('click', () => {
+            if (typeof GDrive !== 'undefined' && GDrive.isLoggedIn && !GDrive.isLoggedIn()) {
+                App.showToast('⚠️ 구글 로그인이 필요합니다.', 'warning');
+                return;
+            }
             selectedIds.forEach(id => Store.updateExpense(id, { transferred: true }));
             App.showToast(`${selectedIds.size}건 이체완료 처리`, 'success');
             selectedIds.clear();
@@ -485,6 +509,10 @@ const Expenses = (() => {
 
         const bulkUntransfer = document.getElementById('btn-bulk-untransfer');
         if (bulkUntransfer) bulkUntransfer.addEventListener('click', () => {
+            if (typeof GDrive !== 'undefined' && GDrive.isLoggedIn && !GDrive.isLoggedIn()) {
+                App.showToast('⚠️ 구글 로그인이 필요합니다.', 'warning');
+                return;
+            }
             selectedIds.forEach(id => Store.updateExpense(id, { transferred: false }));
             App.showToast(`${selectedIds.size}건 이체 취소`, 'success');
             selectedIds.clear();
@@ -493,6 +521,10 @@ const Expenses = (() => {
 
         const bulkDelete = document.getElementById('btn-bulk-delete');
         if (bulkDelete) bulkDelete.addEventListener('click', () => {
+            if (typeof GDrive !== 'undefined' && GDrive.isLoggedIn && !GDrive.isLoggedIn()) {
+                App.showToast('⚠️ 구글 로그인이 필요합니다.', 'warning');
+                return;
+            }
             App.showConfirm('일괄 삭제', `선택된 ${selectedIds.size}건의 지출을 삭제하시겠습니까?`, () => {
                 Store.deleteExpenses([...selectedIds]);
                 App.showToast(`${selectedIds.size}건 삭제 완료`, 'success');

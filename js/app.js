@@ -270,18 +270,26 @@ const App = (() => {
                 : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-right:6px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> <span>🔓 잠금 해제됨</span>`;
         }
 
+        const isLoggedIn = typeof GDrive !== 'undefined' && GDrive.isLoggedIn && GDrive.isLoggedIn();
+
         const configButtonIds = [
             'btn-add-project', 'btn-edit-project', 'btn-delete-project',
-            'btn-rcms-upload', 'btn-image-budget', 'btn-import', 'btn-restore',
-            'btn-gdrive-config'
+            'btn-rcms-upload', 'btn-image-budget', 'btn-import', 'btn-restore'
         ];
 
         configButtonIds.forEach(id => {
             const btn = document.getElementById(id);
             if (btn) {
-                btn.disabled = locked;
+                // 구글 로그인이 안 되어 있거나 설정이 잠겨 있으면 비활성화
+                btn.disabled = locked || !isLoggedIn;
             }
         });
+
+        // 구글 설정 기어 아이콘은 로그인 여부와 관계없이 설정 잠금만 확인
+        const gdriveConfigBtn = document.getElementById('btn-gdrive-config');
+        if (gdriveConfigBtn) {
+            gdriveConfigBtn.disabled = locked;
+        }
     }
 
     // ── Google Drive UI & Modals ──────────────────────────────
@@ -355,6 +363,14 @@ const App = (() => {
                 if (loggedOutState) loggedOutState.style.display = 'block';
                 if (loggedInState) loggedInState.style.display = 'none';
             }
+        }
+
+        // 로그인 상태 변경 시 잠금/편집 버튼 활성화 여부 갱신
+        updateLockUI();
+        
+        // 지출 탭인 경우 동기화 여부에 맞춰 지출 추가 버튼 등을 다시 렌더링하기 위해 리프레시
+        if (currentTab === 'expenses') {
+            Expenses.render();
         }
     }
 

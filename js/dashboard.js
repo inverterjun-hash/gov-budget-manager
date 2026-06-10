@@ -359,6 +359,12 @@ const Dashboard = (() => {
     // ── Inline Budget Edit ───────────────────────────────────
 
     function handleBudgetClick(e) {
+        if (typeof GDrive !== 'undefined' && GDrive.isLoggedIn && !GDrive.isLoggedIn()) {
+            if (typeof App !== 'undefined' && App.showToast) {
+                App.showToast('⚠️ 구글 로그인이 필요합니다. 먼저 로그인해 주세요.', 'warning');
+            }
+            return;
+        }
         if (Store.isLocked()) {
             if (typeof App !== 'undefined' && App.showToast) {
                 App.showToast('⚠️ 설정 잠금을 해제해야 편집할 수 있습니다.', 'warning');
@@ -524,6 +530,12 @@ const Dashboard = (() => {
     // ── Inline Name Edits ────────────────────────────────────
 
     function handleGroupClick(e) {
+        if (typeof GDrive !== 'undefined' && GDrive.isLoggedIn && !GDrive.isLoggedIn()) {
+            if (typeof App !== 'undefined' && App.showToast) {
+                App.showToast('⚠️ 구글 로그인이 필요합니다. 먼저 로그인해 주세요.', 'warning');
+            }
+            return;
+        }
         if (Store.isLocked()) {
             if (typeof App !== 'undefined' && App.showToast) {
                 App.showToast('⚠️ 설정 잠금을 해제해야 편집할 수 있습니다.', 'warning');
@@ -576,6 +588,12 @@ const Dashboard = (() => {
     }
 
     function handleCatNameClick(e) {
+        if (typeof GDrive !== 'undefined' && GDrive.isLoggedIn && !GDrive.isLoggedIn()) {
+            if (typeof App !== 'undefined' && App.showToast) {
+                App.showToast('⚠️ 구글 로그인이 필요합니다. 먼저 로그인해 주세요.', 'warning');
+            }
+            return;
+        }
         if (Store.isLocked()) {
             if (typeof App !== 'undefined' && App.showToast) {
                 App.showToast('⚠️ 설정 잠금을 해제해야 편집할 수 있습니다.', 'warning');
@@ -628,6 +646,12 @@ const Dashboard = (() => {
     }
 
     function handleMemoClick(e) {
+        if (typeof GDrive !== 'undefined' && GDrive.isLoggedIn && !GDrive.isLoggedIn()) {
+            if (typeof App !== 'undefined' && App.showToast) {
+                App.showToast('⚠️ 구글 로그인이 필요합니다. 먼저 로그인해 주세요.', 'warning');
+            }
+            return;
+        }
         if (Store.isLocked()) {
             if (typeof App !== 'undefined' && App.showToast) {
                 App.showToast('⚠️ 설정 잠금을 해제해야 편집할 수 있습니다.', 'warning');
