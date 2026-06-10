@@ -12,6 +12,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
     <div id="app" class="app">
@@ -102,6 +103,49 @@
                 </button>
             </div>
 
+            <div class="sidebar__divider"></div>
+            
+            <div class="sidebar__gdrive-wrap" id="gdrive-container">
+                <div class="sidebar__gdrive-header">
+                    <span>구글 드라이브 동기화</span>
+                    <button id="btn-gdrive-config" class="sidebar__gdrive-config-btn" title="구글 연동 설정">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="sidebar__gdrive-body">
+                    <div id="gdrive-status-text" class="gdrive-status text-muted">연동 되지 않음</div>
+                    
+                    <!-- 클라이언트 ID 미설정 상태 -->
+                    <div id="gdrive-noid-state" class="gdrive-state">
+                        <button id="btn-gdrive-setup-prompt" class="btn btn--secondary btn--sm btn--block" style="font-size: 0.78rem;">클라이언트 ID 설정 필요</button>
+                    </div>
+
+                    <!-- 클라이언트 ID 설정됨, 로그인 안 됨 상태 -->
+                    <div id="gdrive-loggedout-state" class="gdrive-state" style="display: none;">
+                        <button id="btn-gdrive-login" class="btn btn--gdrive btn--sm btn--block">
+                            <svg class="gdrive-logo-svg" viewBox="0 0 24 24" width="14" height="14" style="margin-right:6px">
+                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22c-.87-2.6-2.87-4.53-5.84-4.53z"/>
+                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                            </svg>
+                            <span>Google 로그인</span>
+                        </button>
+                    </div>
+
+                    <!-- 로그인 성공 상태 -->
+                    <div id="gdrive-loggedin-state" class="gdrive-state" style="display: none;">
+                        <div class="gdrive-user-info" id="gdrive-user-email">user@gmail.com</div>
+                        <div class="gdrive-btn-group" style="display:flex;gap:6px;margin-top:6px">
+                            <button id="btn-gdrive-sync" class="btn btn--primary btn--sm" style="flex:1;font-size:0.78rem;">동기화</button>
+                            <button id="btn-gdrive-logout" class="btn btn--danger-ghost btn--sm" style="font-size:0.78rem;padding:4px 8px;">로그아웃</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="sidebar__lock-wrap">
                 <button id="btn-toggle-lock" class="sidebar__lock-btn" title="설정 잠금/해제"></button>
             </div>
@@ -170,6 +214,7 @@
     <script src="js/expenses.js"></script>
     <script src="js/projects.js"></script>
     <script src="js/export.js"></script>
+    <script src="js/gdrive.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

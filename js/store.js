@@ -22,7 +22,10 @@ const Store = (() => {
         currentProjectId: null,
         currentYearId: null,
         isLocked: true,
-        password: '1234'
+        password: '1234',
+        gdriveClientId: '',
+        gdriveFileId: '',
+        lastSyncTime: ''
     };
 
     // ── Persistence ──────────────────────────────────────────────
@@ -30,6 +33,9 @@ const Store = (() => {
     function save() {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            if (typeof GDrive !== 'undefined' && GDrive.autoUpload) {
+                GDrive.autoUpload();
+            }
         } catch (e) {
             console.error('저장 실패:', e);
         }
@@ -43,6 +49,9 @@ const Store = (() => {
                 if (!data.categoryGroups) data.categoryGroups = [];
                 if (data.isLocked === undefined) data.isLocked = true;
                 if (data.password === undefined) data.password = '1234';
+                if (data.gdriveClientId === undefined) data.gdriveClientId = '';
+                if (data.gdriveFileId === undefined) data.gdriveFileId = '';
+                if (data.lastSyncTime === undefined) data.lastSyncTime = '';
                 return true;
             }
         } catch (e) {
@@ -663,6 +672,21 @@ const Store = (() => {
         save();
     }
 
+    function getGDriveConfig() {
+        return {
+            clientId: data.gdriveClientId || '',
+            fileId: data.gdriveFileId || '',
+            lastSyncTime: data.lastSyncTime || ''
+        };
+    }
+
+    function saveGDriveConfig(clientId, fileId, lastSyncTime = null) {
+        if (clientId !== undefined) data.gdriveClientId = clientId;
+        if (fileId !== undefined) data.gdriveFileId = fileId;
+        if (lastSyncTime !== undefined) data.lastSyncTime = lastSyncTime;
+        save();
+    }
+
     function checkPassword(pw) {
         return data.password === pw;
     }
@@ -752,6 +776,7 @@ const Store = (() => {
         getExecutionColor, getExecutionStatus,
         formatCurrency, formatDate,
         initDefaultData, resetAll, exportData, importData, getDefaultCategories,
-        isLocked, setLocked, checkPassword, changePassword
+        isLocked, setLocked, checkPassword, changePassword,
+        getGDriveConfig, saveGDriveConfig
     };
 })();

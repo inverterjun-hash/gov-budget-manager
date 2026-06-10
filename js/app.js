@@ -27,6 +27,11 @@ const App = (() => {
         bindGlobalEvents();
         navigateTo('dashboard');
         updateLockUI();
+
+        // 구글 드라이브 연동 초기화
+        if (typeof GDrive !== 'undefined') {
+            GDrive.init(updateGDriveUI);
+        }
     }
 
     // ── Navigation ───────────────────────────────────────────
@@ -265,7 +270,9 @@ const App = (() => {
 
         const configButtonIds = [
             'btn-add-project', 'btn-edit-project', 'btn-delete-project',
-            'btn-rcms-upload', 'btn-image-budget', 'btn-import', 'btn-restore'
+            'btn-rcms-upload', 'btn-image-budget', 'btn-import', 'btn-restore',
+            'btn-gdrive-config', 'btn-gdrive-setup-prompt', 'btn-gdrive-login',
+            'btn-gdrive-sync', 'btn-gdrive-logout'
         ];
 
         configButtonIds.forEach(id => {
@@ -274,6 +281,123 @@ const App = (() => {
                 btn.disabled = locked;
             }
         });
+    }
+
+    // ── Google Drive UI & Modals ──────────────────────────────
+
+    function updateGDriveUI(state, message, userInfo) {
+        const statusText = document.getElementById('gdrive-status-text');
+        const noIdState = document.getElementById('gdrive-noid-state');
+        const loggedOutState = document.getElementById('gdrive-loggedout-state');
+        const loggedInState = document.getElementById('gdrive-loggedin-state');
+        const userEmail = document.getElementById('gdrive-user-email');
+
+        if (!statusText) return;
+
+        // Reset classes
+        statusText.className = 'gdrive-status';
+
+        if (state === 'no_client_id') {
+            statusText.textContent = '클라이언트 ID 미설정';
+            statusText.classList.add('text-muted');
+            if (noIdState) noIdState.style.display = 'block';
+            if (loggedOutState) loggedOutState.style.display = 'none';
+            if (loggedInState) loggedInState.style.display = 'none';
+        } else if (state === 'logged_out') {
+            statusText.textContent = '로그인 대기 중';
+            statusText.classList.add('text-muted');
+            if (noIdState) noIdState.style.display = 'none';
+            if (loggedOutState) loggedOutState.style.display = 'block';
+            if (loggedInState) loggedInState.style.display = 'none';
+        } else if (state === 'syncing') {
+            statusText.textContent = message || '동기화 진행 중...';
+            statusText.classList.add('syncing');
+            if (noIdState) noIdState.style.display = 'none';
+            if (loggedOutState) loggedOutState.style.display = 'none';
+            if (loggedInState) loggedInState.style.display = 'block';
+            if (userEmail && userInfo) userEmail.textContent = userInfo.email;
+        } else if (state === 'success') {
+            statusText.textContent = message || '동기화 완료';
+            statusText.classList.add('success');
+            if (noIdState) noIdState.style.display = 'none';
+            if (loggedOutState) loggedOutState.style.display = 'none';
+            if (loggedInState) loggedInState.style.display = 'block';
+            if (userEmail && userInfo) userEmail.textContent = userInfo.email;
+        } else if (state === 'logged_in') {
+            statusText.textContent = '구글 로그인 완료';
+            statusText.classList.add('success');
+            if (noIdState) noIdState.style.display = 'none';
+            if (loggedOutState) loggedOutState.style.display = 'none';
+            if (loggedInState) loggedInState.style.display = 'block';
+            if (userEmail && userInfo) userEmail.textContent = userInfo.email;
+        } else if (state === 'error') {
+            statusText.textContent = message || '에러 발생';
+            statusText.classList.add('error');
+            
+            // 현재 로그인 여부에 맞춰 적절한 UI 상태 노출
+            const config = Store.getGDriveConfig();
+            if (!config.clientId) {
+                if (noIdState) noIdState.style.display = 'block';
+                if (loggedOutState) loggedOutState.style.display = 'none';
+                if (loggedInState) loggedInState.style.display = 'none';
+            } else if (GDrive.isLoggedIn()) {
+                if (noIdState) noIdState.style.display = 'none';
+                if (loggedOutState) loggedOutState.style.display = 'none';
+                if (loggedInState) loggedInState.style.display = 'block';
+                if (userEmail && userInfo) userEmail.textContent = userInfo.email;
+            } else {
+                if (noIdState) noIdState.style.display = 'none';
+                if (loggedOutState) loggedOutState.style.display = 'block';
+                if (loggedInState) loggedInState.style.display = 'none';
+            }
+        }
+    }
+
+    function showGDriveConfigModal() {
+        const config = Store.getGDriveConfig();
+        const html = `
+        <div class="modal__header">
+            <h3 class="modal__title">⚙️ 구글 드라이브 연동 설정</h3>
+            <button class="modal__close" id="modal-close">&times;</button>
+        </div>
+        <div class="modal__body" style="display:flex;flex-direction:column;gap:12px">
+            <div class="form-group">
+                <label class="form-label" style="font-weight:600">Google Cloud Console OAuth 클라이언트 ID</label>
+                <input type="text" class="form-input" id="gdrive-client-id-input" placeholder="xxxxx.apps.googleusercontent.com" value="${config.clientId}" style="font-family:monospace;font-size:0.85rem">
+                <div class="form-hint" style="color:var(--text-muted);margin-top:8px;line-height:1.4">
+                    정적 웹사이트(GitHub Pages)에서 구글 드라이브를 연동하기 위해서는 본인의 Google Cloud 프로젝트에서 생성한 <strong>OAuth Client ID</strong>가 필요합니다.
+                    <br><br>
+                    <strong>설정 순서:</strong>
+                    <ol style="margin-left:16px;margin-top:4px">
+                        <li><a href="https://console.cloud.google.com" target="_blank" style="color:var(--primary);text-decoration:underline">Google Cloud Console</a>에 접속</li>
+                        <li>프로젝트 생성 및 <strong>Google Drive API</strong> 활성화</li>
+                        <li>OAuth 동의 화면을 구성 (외부 사용자 테스트 지정)</li>
+                        <li>사용자 인증 정보에서 <strong>OAuth 클라이언트 ID (웹 애플리케이션)</strong> 생성</li>
+                        <li>승인된 JavaScript 원본(Origins)에 현재 주소 추가</li>
+                        <li>발급된 Client ID를 여기에 붙여넣고 저장</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        <div class="modal__footer">
+            <button class="btn btn--ghost" id="modal-cancel">취소</button>
+            <button class="btn btn--primary" id="btn-gdrive-config-save">저장</button>
+        </div>`;
+
+        showModal(html);
+
+        document.getElementById('btn-gdrive-config-save').addEventListener('click', () => {
+            const val = document.getElementById('gdrive-client-id-input').value.trim();
+            if (!val) {
+                alert('클라이언트 ID를 입력해 주세요.');
+                return;
+            }
+            GDrive.setClientId(val);
+            closeModal();
+            showToast('구글 클라이언트 ID가 저장 및 반영되었습니다.', 'success');
+        });
+        document.getElementById('modal-cancel').addEventListener('click', closeModal);
+        document.getElementById('modal-close').addEventListener('click', closeModal);
     }
 
     // ── Global Event Binding ─────────────────────────────────
@@ -348,6 +472,22 @@ const App = (() => {
                 }
             });
         }
+
+        // Google Drive Sync Controls
+        const btnGDriveConfig = document.getElementById('btn-gdrive-config');
+        if (btnGDriveConfig) btnGDriveConfig.addEventListener('click', showGDriveConfigModal);
+
+        const btnGDriveSetupPrompt = document.getElementById('btn-gdrive-setup-prompt');
+        if (btnGDriveSetupPrompt) btnGDriveSetupPrompt.addEventListener('click', showGDriveConfigModal);
+
+        const btnGDriveLogin = document.getElementById('btn-gdrive-login');
+        if (btnGDriveLogin) btnGDriveLogin.addEventListener('click', () => GDrive.login());
+
+        const btnGDriveSync = document.getElementById('btn-gdrive-sync');
+        if (btnGDriveSync) btnGDriveSync.addEventListener('click', () => GDrive.sync());
+
+        const btnGDriveLogout = document.getElementById('btn-gdrive-logout');
+        if (btnGDriveLogout) btnGDriveLogout.addEventListener('click', () => GDrive.logout());
     }
 
     return {
