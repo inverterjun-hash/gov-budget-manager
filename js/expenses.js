@@ -51,7 +51,6 @@ const Expenses = (() => {
                     ${renderExpenseTable(expenses, categories, isLoggedIn)}
                 </div>
             </div>`;
-        `;
 
         bindExpenseEvents();
     }
