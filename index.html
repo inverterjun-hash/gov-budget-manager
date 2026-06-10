@@ -117,13 +117,13 @@
                 <div class="sidebar__gdrive-body">
                     <div id="gdrive-status-text" class="gdrive-status text-muted">연동 되지 않음</div>
                     
-                    <!-- 클라이언트 ID 미설정 상태 -->
-                    <div id="gdrive-noid-state" class="gdrive-state">
+                    <!-- 클라이언트 ID 미설정 상태 (기본 숨김 - DEFAULT_CLIENT_ID 사용) -->
+                    <div id="gdrive-noid-state" class="gdrive-state" style="display:none;">
                         <button id="btn-gdrive-setup-prompt" class="btn btn--secondary btn--sm btn--block" style="font-size: 0.78rem;">클라이언트 ID 설정 필요</button>
                     </div>
 
                     <!-- 클라이언트 ID 설정됨, 로그인 안 됨 상태 -->
-                    <div id="gdrive-loggedout-state" class="gdrive-state" style="display: none;">
+                    <div id="gdrive-loggedout-state" class="gdrive-state">
                         <button id="btn-gdrive-login" class="btn btn--gdrive btn--sm btn--block">
                             <svg class="gdrive-logo-svg" viewBox="0 0 24 24" width="14" height="14" style="margin-right:6px">
                                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
