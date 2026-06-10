@@ -273,8 +273,7 @@ const App = (() => {
         const configButtonIds = [
             'btn-add-project', 'btn-edit-project', 'btn-delete-project',
             'btn-rcms-upload', 'btn-image-budget', 'btn-import', 'btn-restore',
-            'btn-gdrive-config', 'btn-gdrive-setup-prompt', 'btn-gdrive-login',
-            'btn-gdrive-sync', 'btn-gdrive-logout'
+            'btn-gdrive-config'
         ];
 
         configButtonIds.forEach(id => {

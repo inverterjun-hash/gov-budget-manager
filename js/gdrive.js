@@ -3,10 +3,13 @@
 // ═══════════════════════════════════════════════════════════════
 
 const GDrive = (() => {
+    // 💡 발급받으신 구글 클라이언트 ID를 아래 따옴표 안에 입력하시면, 직원들이 직접 설정창에 클라이언트 ID를 입력할 필요가 없어집니다.
+    const DEFAULT_CLIENT_ID = '93124532286-4s5o836d8rhsunod0drmeck0g2ngmhod.apps.googleusercontent.com';
+
     let tokenClient = null;
     let tokenInfo = {
-        accessToken: sessionStorage.getItem('gdrive_token') || null,
-        expiresAt: Number(sessionStorage.getItem('gdrive_token_expires')) || 0
+        accessToken: localStorage.getItem('gdrive_token') || null,
+        expiresAt: Number(localStorage.getItem('gdrive_token_expires')) || 0
     };
     let userInfo = null;
     let onStateChangeCallback = null;
@@ -28,7 +31,8 @@ const GDrive = (() => {
         }
 
         const config = Store.getGDriveConfig();
-        if (!config.clientId) {
+        const clientId = config.clientId || DEFAULT_CLIENT_ID;
+        if (!clientId) {
             triggerStateChange('no_client_id');
             return;
         }
@@ -41,7 +45,7 @@ const GDrive = (() => {
             }
 
             tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: config.clientId,
+                client_id: clientId,
                 scope: 'https://www.googleapis.com/auth/drive.file email',
                 callback: async (response) => {
                     if (response.error) {
@@ -52,8 +56,9 @@ const GDrive = (() => {
 
                     tokenInfo.accessToken = response.access_token;
                     tokenInfo.expiresAt = Date.now() + (Number(response.expires_in) * 1000) - 60000;
-                    sessionStorage.setItem('gdrive_token', tokenInfo.accessToken);
-                    sessionStorage.setItem('gdrive_token_expires', tokenInfo.expiresAt);
+                    localStorage.setItem('gdrive_token', tokenInfo.accessToken);
+                    localStorage.setItem('gdrive_token_expires', tokenInfo.expiresAt);
+                    localStorage.setItem('gdrive_user_has_logged_in', 'true');
 
                     triggerStateChange('syncing', '사용자 정보 확인 중...');
                     await fetchUserInfo();
@@ -73,6 +78,14 @@ const GDrive = (() => {
                     console.error('세션 토큰 기반 로그인 정보 로드 실패:', err);
                     logout();
                 });
+            } else if (localStorage.getItem('gdrive_user_has_logged_in') === 'true') {
+                // 이전에 로그인한 적이 있고 토큰만 만료된 경우 -> 백그라운드 무인(Silent) 토큰 갱신 시도
+                console.log('이전 로그인 이력 감지: 백그라운드 토큰 갱신 시도...');
+                setTimeout(() => {
+                    if (tokenClient) {
+                        tokenClient.requestAccessToken({ prompt: '' });
+                    }
+                }, 500);
             } else {
                 triggerStateChange('logged_out');
             }
@@ -112,7 +125,8 @@ const GDrive = (() => {
     function login() {
         if (!tokenClient) {
             const config = Store.getGDriveConfig();
-            if (!config.clientId) {
+            const clientId = config.clientId || DEFAULT_CLIENT_ID;
+            if (!clientId) {
                 alert('구글 클라이언트 ID 설정이 필요합니다.');
                 return;
             }
@@ -138,8 +152,9 @@ const GDrive = (() => {
         tokenInfo.accessToken = null;
         tokenInfo.expiresAt = 0;
         userInfo = null;
-        sessionStorage.removeItem('gdrive_token');
-        sessionStorage.removeItem('gdrive_token_expires');
+        localStorage.removeItem('gdrive_token');
+        localStorage.removeItem('gdrive_token_expires');
+        localStorage.removeItem('gdrive_user_has_logged_in');
         
         // 로컬 저장소에 기록된 파일 ID 초기화
         const config = Store.getGDriveConfig();
@@ -363,7 +378,7 @@ const GDrive = (() => {
             const res = await driveApiRequest(`/files/${fileId}?fields=modifiedTime`);
             const meta = await res.json();
             if (meta.modifiedTime) {
-                sessionStorage.setItem('gdrive_last_sync_timestamp', meta.modifiedTime);
+                localStorage.setItem('gdrive_last_sync_timestamp', meta.modifiedTime);
             }
         } catch (e) {
             console.error('동기화 타임스탬프 갱신 실패:', e);
@@ -380,7 +395,7 @@ const GDrive = (() => {
             const res = await driveApiRequest(`/files/${config.fileId}?fields=modifiedTime,lastModifyingUser`);
             const file = await res.json();
             
-            const lastSync = sessionStorage.getItem('gdrive_last_sync_timestamp');
+            const lastSync = localStorage.getItem('gdrive_last_sync_timestamp');
             if (file.modifiedTime && lastSync) {
                 const remoteTime = new Date(file.modifiedTime).getTime();
                 const localSyncTime = new Date(lastSync).getTime();
