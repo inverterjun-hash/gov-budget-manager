@@ -115,14 +115,12 @@
                     </button>
                 </div>
                 <div class="sidebar__gdrive-body">
-                    <div id="gdrive-status-text" class="gdrive-status text-muted">연동 되지 않음</div>
-                    
-                    <!-- 클라이언트 ID 미설정 상태 (기본 숨김 - DEFAULT_CLIENT_ID 사용) -->
-                    <div id="gdrive-noid-state" class="gdrive-state" style="display:none;">
-                        <button id="btn-gdrive-setup-prompt" class="btn btn--secondary btn--sm btn--block" style="font-size: 0.78rem;">클라이언트 ID 설정 필요</button>
-                    </div>
+                    <div id="gdrive-status-text" class="gdrive-status text-muted">로그인 대기 중</div>
 
-                    <!-- 클라이언트 ID 설정됨, 로그인 안 됨 상태 -->
+                    <!-- 클라이언트 ID 미설정 상태 - 완전 숨김 (DEFAULT_CLIENT_ID 항상 사용) -->
+                    <div id="gdrive-noid-state" class="gdrive-state" style="display:none !important;"></div>
+
+                    <!-- 로그인 안 됨 상태 - 기본 표시 -->
                     <div id="gdrive-loggedout-state" class="gdrive-state">
                         <button id="btn-gdrive-login" class="btn btn--gdrive btn--sm btn--block">
                             <svg class="gdrive-logo-svg" viewBox="0 0 24 24" width="14" height="14" style="margin-right:6px">
@@ -217,13 +215,13 @@
     <div class="toast-container" id="toast-container"></div>
 
     <!-- ═══ Scripts ═══ -->
-    <script src="js/store.js"></script>
-    <script src="js/dashboard.js"></script>
-    <script src="js/integrated.js"></script>
-    <script src="js/expenses.js"></script>
-    <script src="js/projects.js"></script>
-    <script src="js/export.js"></script>
-    <script src="js/gdrive.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/store.js?v=2"></script>
+    <script src="js/dashboard.js?v=2"></script>
+    <script src="js/integrated.js?v=2"></script>
+    <script src="js/expenses.js?v=2"></script>
+    <script src="js/projects.js?v=2"></script>
+    <script src="js/export.js?v=2"></script>
+    <script src="js/gdrive.js?v=2"></script>
+    <script src="js/app.js?v=2"></script>
 </body>
 </html>
