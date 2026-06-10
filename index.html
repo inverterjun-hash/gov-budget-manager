@@ -140,6 +140,18 @@
                             <button id="btn-gdrive-sync" class="btn btn--primary btn--sm" style="flex:1;font-size:0.78rem;">동기화</button>
                             <button id="btn-gdrive-logout" class="btn btn--danger-ghost btn--sm" style="font-size:0.78rem;padding:4px 8px;">로그아웃</button>
                         </div>
+
+                        <!-- 공유 파일 ID 설정 영역 -->
+                        <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);">
+                            <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;">파일 ID (부리선 클릭 → 복사)</div>
+                            <div id="gdrive-current-file-id" style="font-size:0.65rem;font-family:monospace;word-break:break-all;background:rgba(0,0,0,0.2);padding:4px 6px;border-radius:4px;cursor:pointer;color:#aaa;" title="클릭하면 복사됩니다">동기화 후 표시</div>
+                            <div style="margin-top:6px;font-size:0.7rem;color:var(--text-muted);margin-bottom:3px;">혼지 파일 ID 입력 (관리자로부터 받은 ID)</div>
+                            <div style="display:flex;gap:4px;">
+                                <input id="input-shared-file-id" type="text" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs..." style="flex:1;font-size:0.68rem;padding:4px 6px;border-radius:4px;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.2);color:#fff;min-width:0;">
+                                <button id="btn-set-shared-file-id" class="btn btn--primary btn--sm" style="font-size:0.7rem;padding:4px 6px;white-space:nowrap;">설정</button>
+                            </div>
+                            <div id="gdrive-shared-status" style="font-size:0.68rem;margin-top:3px;color:#4ade80;"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -221,7 +233,7 @@
     <script src="js/expenses.js?v=2"></script>
     <script src="js/projects.js?v=2"></script>
     <script src="js/export.js?v=2"></script>
-    <script src="js/gdrive.js?v=2"></script>
-    <script src="js/app.js?v=2"></script>
+    <script src="js/gdrive.js?v=4"></script>
+    <script src="js/app.js?v=3"></script>
 </body>
 </html>

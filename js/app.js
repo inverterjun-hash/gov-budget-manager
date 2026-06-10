@@ -333,6 +333,28 @@ const App = (() => {
             if (loggedInState) loggedInState.style.display = 'block';
             if (userEmail && userInfo) userEmail.textContent = userInfo.email;
 
+            // 동기화 완료 시 현재 파일 ID 표시
+            const fileIdDisplay = document.getElementById('gdrive-current-file-id');
+            if (fileIdDisplay && GDrive.getCurrentFileId) {
+                const fid = GDrive.getCurrentFileId();
+                fileIdDisplay.textContent = fid || '파일 ID 없음';
+                fileIdDisplay.title = '클릭하면 복사됩니다: ' + fid;
+            }
+
+            // 공유 파일 ID 입력창에 현재 설정값 표시
+            const sharedInput = document.getElementById('input-shared-file-id');
+            if (sharedInput && GDrive.getSharedFileId) {
+                sharedInput.value = GDrive.getSharedFileId() || '';
+            }
+
+            // 공유 파일 상태 표시
+            const statusEl = document.getElementById('gdrive-shared-status');
+            if (statusEl && GDrive.getSharedFileId) {
+                statusEl.textContent = GDrive.getSharedFileId()
+                    ? '✅ 공유 파일 모드 활성 중'
+                    : '';
+            }
+
             // 동기화 완료 시 상단 경고 배너 숨김
             const banner = document.getElementById('sync-warning-banner');
             if (banner) banner.style.display = 'none';
@@ -522,6 +544,47 @@ const App = (() => {
 
         const btnGDriveLogout = document.getElementById('btn-gdrive-logout');
         if (btnGDriveLogout) btnGDriveLogout.addEventListener('click', () => GDrive.logout());
+
+        // 공유 파일 ID 설정 버튼
+        const btnSetSharedFileId = document.getElementById('btn-set-shared-file-id');
+        if (btnSetSharedFileId) {
+            // 기존에 설정된 공유 파일 ID가 있으면 입력창에 표시
+            const inputSharedFileId = document.getElementById('input-shared-file-id');
+            if (inputSharedFileId && GDrive.getSharedFileId) {
+                inputSharedFileId.value = GDrive.getSharedFileId() || '';
+            }
+
+            btnSetSharedFileId.addEventListener('click', () => {
+                const input = document.getElementById('input-shared-file-id');
+                const statusEl = document.getElementById('gdrive-shared-status');
+                const val = input ? input.value.trim() : '';
+                if (GDrive.setSharedFileId) {
+                    GDrive.setSharedFileId(val);
+                    if (val) {
+                        if (statusEl) statusEl.textContent = '✅ 공유 파일 ID 설정됨! 다음 동기화부터 적용됩니다.';
+                        showToast('✅ 공유 파일 ID가 설정되었습니다. 동기화 버튼을 눌러주세요.', 'success');
+                    } else {
+                        if (statusEl) statusEl.textContent = '개인 파일 모드로 전환됨';
+                        showToast('공유 파일 ID가 해제되었습니다.', 'info');
+                    }
+                }
+            });
+        }
+
+        // 현재 파일 ID 표시 영역 클릭 → 클립보드 복사
+        const fileIdDisplay = document.getElementById('gdrive-current-file-id');
+        if (fileIdDisplay) {
+            fileIdDisplay.addEventListener('click', () => {
+                const id = fileIdDisplay.textContent;
+                if (id && id !== '동기화 후 표시') {
+                    navigator.clipboard.writeText(id).then(() => {
+                        showToast('📋 파일 ID가 클립보드에 복사되었습니다!', 'success');
+                    }).catch(() => {
+                        prompt('파일 ID를 복사하세요:', id);
+                    });
+                }
+            });
+        }
 
         // Warning Banner Sync Action
         const btnSyncBannerTrigger = document.getElementById('btn-sync-banner-trigger');

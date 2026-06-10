@@ -62,12 +62,28 @@ const GDrive = (() => {
 
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: clientId,
-                scope: 'https://www.googleapis.com/auth/drive.file email',
+                scope: 'https://www.googleapis.com/auth/drive email',
                 callback: async (response) => {
                     if (response.error) {
                         console.error('OAuth 에러:', response.error);
                         triggerStateChange('error', '로그인 실패: ' + response.error);
                         return;
+                    }
+
+                    // ★ 토큰 스코프 검증: drive.file 권한이 있는지 확인
+                    try {
+                        const scopeRes = await fetch(`https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=${response.access_token}`);
+                        const scopeData = await scopeRes.json();
+                        console.log('[GDrive] 발급된 토큰 스코프:', scopeData.scope);
+                        
+                        if (!scopeData.scope || !scopeData.scope.includes('drive')) {
+                            console.error('[GDrive] drive 스코프 없음! 재로그인 필요. 현재 스코프:', scopeData.scope);
+                            triggerStateChange('error', '구글 드라이브 권한이 없습니다. 로그인 시 "드라이브 파일 관리" 항목을 반드시 허용해 주세요.');
+                            return;
+                        }
+                        console.log('[GDrive] 스코프 검증 완료 ✓');
+                    } catch(e) {
+                        console.warn('[GDrive] 스코프 검증 실패 (무시):', e);
                     }
 
                     tokenInfo.accessToken = response.access_token;
@@ -195,6 +211,23 @@ const GDrive = (() => {
         if (!res.ok) {
             const errBody = await res.text().catch(() => '');
             console.error(`Google API Error (${res.status}):`, errBody);
+            
+            // 403 에러 원인 상세 분석
+            if (res.status === 403) {
+                let reason = '';
+                try {
+                    const errJson = JSON.parse(errBody);
+                    reason = errJson?.error?.errors?.[0]?.reason || '';
+                    console.error('403 reason:', reason);
+                } catch(e) {}
+                
+                if (reason === 'insufficientPermissions' || reason === 'forbidden' || reason === 'accessNotConfigured') {
+                    // 스코프 권한 부족 - 재로그인 필요
+                    logout();
+                    throw new Error('구글 드라이브 접근 권한 없음 (reason: ' + reason + '). 로그아웃 후 다시 로그인하여 드라이브 권한을 허용해 주세요.');
+                }
+            }
+            
             if (res.status === 401) {
                 logout();
                 throw new Error('인증 세션이 만료되었습니다. 다시 로그인해 주세요.');
@@ -230,32 +263,60 @@ const GDrive = (() => {
         return file.id;
     }
 
-    // 동기화 메인 프로세스 (비교 및 양방향 제어)
+    // ─── 공유 파일 ID 관리 (모든 직원이 같은 파일 사용) ───
+    function getSharedFileId() {
+        return localStorage.getItem('gdrive_shared_file_id') || '';
+    }
+
+    function setSharedFileId(id) {
+        if (id && id.trim()) {
+            localStorage.setItem('gdrive_shared_file_id', id.trim());
+            console.log('[GDrive] 공유 파일 ID 설정됨:', id.trim());
+        } else {
+            localStorage.removeItem('gdrive_shared_file_id');
+            console.log('[GDrive] 공유 파일 ID 초기화됨');
+        }
+    }
+
+    function getCurrentFileId() {
+        return getSharedFileId() || Store.getGDriveConfig().fileId || '';
+    }
+
+    // 동기화 메인 프로세스
     async function sync(forceUpload = false) {
         if (!isLoggedIn()) return;
 
         try {
             triggerStateChange('syncing', '동기화 상태 확인 중...');
-            
-            let file = await findFile();
-            let fileId = file ? file.id : null;
+
+            const config = Store.getGDriveConfig();
+
+            // 공유 파일 ID가 설정되어 있으면 해당 파일을 직접 사용
+            const sharedId = getSharedFileId();
+            let fileId = sharedId || config.fileId || null;
+
+            if (!fileId) {
+                // 공유 ID 없음 → 이름으로 검색 또는 새로 생성
+                let file = await findFile();
+                fileId = file ? file.id : null;
+            }
 
             if (!fileId) {
                 // 구글 드라이브에 파일이 존재하지 않는 경우 새로 만들고 업로드
                 fileId = await createFile();
-                const config = Store.getGDriveConfig();
                 Store.saveGDriveConfig(config.clientId, fileId);
                 await uploadFileContent(fileId);
                 const nowStr = new Date().toLocaleString();
                 Store.saveGDriveConfig(config.clientId, fileId, nowStr);
                 await updateSyncTimestamp(fileId);
-                triggerStateChange('success', `동기화 완료: ${nowStr}`);
+                triggerStateChange('success', `동기화 완료 (파일 ID: ${fileId.substring(0,8)}...): ${nowStr}`);
                 return;
             }
 
-            // 파일 ID 기록
-            const config = Store.getGDriveConfig();
-            Store.saveGDriveConfig(config.clientId, fileId);
+            // 파일 ID 기록 (공유 ID가 아닌 경우만)
+            if (!sharedId) {
+                Store.saveGDriveConfig(config.clientId, fileId);
+            }
 
             if (forceUpload) {
                 await uploadFileContent(fileId);
@@ -438,11 +499,10 @@ const GDrive = (() => {
 
     return {
         init, login, logout, sync, autoUpload, isLoggedIn, getAccessToken, getUserEmail, checkNewerVersion,
-        onGoogleScriptLoad,
+        onGoogleScriptLoad, getSharedFileId, setSharedFileId, getCurrentFileId,
         setClientId: function(clientId) {
             const config = Store.getGDriveConfig();
             Store.saveGDriveConfig(clientId, config.fileId, config.lastSyncTime);
-            // 클라이언트 ID가 변경되었으므로 초기화 재시행
             _initialized = false;
             init();
         }
