@@ -70,7 +70,12 @@ const App = (() => {
         });
 
         // 로그인/동기화/로그아웃
-        if (loginBtn) loginBtn.addEventListener('click', () => { GDrive.login(); if (panel) panel.style.display = 'none'; });
+        if (loginBtn) {
+            loginBtn.addEventListener('click', () => { 
+                const started = GDrive.login(); 
+                if (started && panel) panel.style.display = 'none'; 
+            });
+        }
         if (syncBtn) syncBtn.addEventListener('click', () => GDrive.sync());
         if (logoutBtn) logoutBtn.addEventListener('click', () => { GDrive.logout(); });
     }

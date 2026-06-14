@@ -160,8 +160,14 @@ const GDrive = (() => {
         }
         if (tokenClient) {
             tokenClient.requestAccessToken({ prompt: 'consent' });
+            return true;
         } else {
-            alert('구글 로그인 모듈을 불러오는 중입니다 (인터넷 연결에 따라 1~3초 소요될 수 있습니다). 잠시 후 다시 버튼을 눌러주세요.');
+            if (typeof google === 'undefined' || !google.accounts) {
+                alert('구글 로그인이 차단되었습니다.\n\n카카오톡 등 앱 내장 브라우저에서는 구글 로그인이 불가능할 수 있습니다. 우측 하단 ⠇(메뉴)를 눌러 "다른 브라우저(크롬/사파리)로 열기"를 선택해 주세요.');
+            } else {
+                alert('구글 로그인 모듈 초기화 중입니다. 잠시 후 다시 눌러주세요.');
+            }
+            return false;
         }
     }
 
