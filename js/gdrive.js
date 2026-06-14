@@ -156,18 +156,12 @@ const GDrive = (() => {
     // 로그인 실행 (OAuth 팝업창 호출)
     function login() {
         if (!tokenClient) {
-            const config = Store.getGDriveConfig();
-            const clientId = config.clientId || DEFAULT_CLIENT_ID;
-            if (!clientId) {
-                alert('구글 클라이언트 ID 설정이 필요합니다.');
-                return;
-            }
             init();
         }
         if (tokenClient) {
             tokenClient.requestAccessToken({ prompt: 'consent' });
         } else {
-            alert('구글 로그인 모듈을 초기화할 수 없습니다. 클라이언트 ID를 확인하세요.');
+            alert('구글 로그인 모듈을 불러오는 중입니다 (인터넷 연결에 따라 1~3초 소요될 수 있습니다). 잠시 후 다시 버튼을 눌러주세요.');
         }
     }
 
