@@ -34,6 +34,88 @@ const App = (() => {
             GDrive.init(updateGDriveUI);
             startPresenceCheck();
         }
+
+        // 모바일 FAB 버튼 초기화
+        initMobileGDriveFab();
+    }
+
+    // ── 모바일 GDrive FAB ──────────────────────────────────────
+    function initMobileGDriveFab() {
+        const isMobile = () => window.innerWidth <= 768;
+
+        const fab = document.getElementById('btn-mobile-gdrive-fab');
+        const panel = document.getElementById('mobile-gdrive-panel');
+        const closeBtn = document.getElementById('btn-mobile-gdrive-close');
+        const loginBtn = document.getElementById('btn-mobile-gdrive-login');
+        const syncBtn = document.getElementById('btn-mobile-gdrive-sync');
+        const logoutBtn = document.getElementById('btn-mobile-gdrive-logout');
+
+        if (!fab) return;
+
+        // 모바일이면 FAB 표시
+        const toggleFabVisibility = () => {
+            fab.style.display = isMobile() ? 'flex' : 'none';
+        };
+        toggleFabVisibility();
+        window.addEventListener('resize', toggleFabVisibility);
+
+        // FAB 클릭 → 패널 열기
+        fab.addEventListener('click', () => {
+            if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        });
+
+        // 패널 닫기
+        if (closeBtn) closeBtn.addEventListener('click', () => {
+            if (panel) panel.style.display = 'none';
+        });
+
+        // 로그인/동기화/로그아웃
+        if (loginBtn) loginBtn.addEventListener('click', () => { GDrive.login(); if (panel) panel.style.display = 'none'; });
+        if (syncBtn) syncBtn.addEventListener('click', () => GDrive.sync());
+        if (logoutBtn) logoutBtn.addEventListener('click', () => { GDrive.logout(); });
+    }
+
+    // 모바일 GDrive 패널 상태 업데이트
+    function updateMobileGDrivePanel(state, message, userInfo) {
+        const statusEl = document.getElementById('mobile-gdrive-status');
+        const loggedoutEl = document.getElementById('mobile-gdrive-loggedout');
+        const loggedinEl = document.getElementById('mobile-gdrive-loggedin');
+        const emailEl = document.getElementById('mobile-gdrive-email');
+        const fab = document.getElementById('btn-mobile-gdrive-fab');
+
+        if (!statusEl) return;
+
+        if (state === 'logged_out') {
+            statusEl.textContent = '로그인 필요';
+            statusEl.style.color = '#94a3b8';
+            if (loggedoutEl) loggedoutEl.style.display = 'block';
+            if (loggedinEl) loggedinEl.style.display = 'none';
+            if (fab) fab.textContent = '🔑';
+        } else if (state === 'syncing') {
+            statusEl.textContent = message || '동기화 중...';
+            statusEl.style.color = '#3b82f6';
+            if (fab) fab.textContent = '🔄';
+        } else if (state === 'success') {
+            statusEl.textContent = message || '동기화 완료';
+            statusEl.style.color = '#10b981';
+            if (loggedoutEl) loggedoutEl.style.display = 'none';
+            if (loggedinEl) loggedinEl.style.display = 'block';
+            if (emailEl && userInfo) emailEl.textContent = userInfo.email || GDrive.getUserEmail();
+            if (emailEl && !userInfo) emailEl.textContent = GDrive.getUserEmail ? GDrive.getUserEmail() : '';
+            if (fab) fab.textContent = '✅';
+            setTimeout(() => { if (fab) fab.textContent = '☁️'; }, 2000);
+        } else if (state === 'logged_in') {
+            statusEl.textContent = '로그인 완료';
+            statusEl.style.color = '#10b981';
+            if (loggedoutEl) loggedoutEl.style.display = 'none';
+            if (loggedinEl) loggedinEl.style.display = 'block';
+            if (emailEl) emailEl.textContent = GDrive.getUserEmail ? GDrive.getUserEmail() : '';
+            if (fab) fab.textContent = '☁️';
+        } else if (state === 'error') {
+            statusEl.textContent = message || '오류 발생';
+            statusEl.style.color = '#ef4444';
+            if (fab) fab.textContent = '⚠️';
+        }
     }
 
     // ── Navigation ───────────────────────────────────────────
@@ -379,6 +461,11 @@ const App = (() => {
         // 로그인 상태 변경 시 잠금/편집 버튼 활성화 여부 갱신
         updateLockUI();
         
+        // 모바일 GDrive 패널 업데이트 연동
+        if (typeof updateMobileGDrivePanel === 'function') {
+            updateMobileGDrivePanel(state, message, userInfo);
+        }
+
         // 지출 탭인 경우 동기화 여부에 맞춰 지출 추가 버튼 등을 다시 렌더링하기 위해 리프레시
         if (currentTab === 'expenses') {
             Expenses.render();
