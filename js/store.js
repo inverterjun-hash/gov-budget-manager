@@ -310,18 +310,7 @@ const Store = (() => {
         const group = data.categoryGroups.find(g => g.id === id);
         if (!group) return null;
 
-        const oldName = group.name;
-        const newName = updates.name;
-
-        if (newName && oldName && newName !== oldName) {
-            data.categoryGroups.forEach(g => {
-                if (g.name === oldName) {
-                    g.name = newName;
-                }
-            });
-        } else {
-            Object.assign(group, updates);
-        }
+        Object.assign(group, updates);
 
         save();
         return group;
