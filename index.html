@@ -13,6 +13,23 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer onload="window.onGoogleScriptLoad && window.onGoogleScriptLoad()"></script>
+    <script>
+        (function() {
+            var userAgent = navigator.userAgent.toLowerCase();
+            var isInAppBrowser = /kakaotalk|naver|instagram|line|fbav|kakaostory/i.test(userAgent);
+
+            if (isInAppBrowser) {
+                if (userAgent.match(/android/i)) {
+                    // 안드로이드: 외부 크롬 브라우저로 자동 리다이렉션
+                    var targetUrl = location.href.replace(/https?:\/\//i, '');
+                    location.href = 'intent://' + targetUrl + '#Intent;scheme=https;package=com.android.chrome;end';
+                } else {
+                    // iOS: 경고창을 띄워 Safari로 열도록 유도
+                    alert('⚠️ 앱 내장 브라우저에서는 구글 로그인이 차단됩니다.\n\n화면 우측 하단 또는 상단의 [ ⠇ ] 메뉴를 눌러 반드시 [다른 브라우저로 열기] 또는 [Safari로 열기]를 선택해 주세요.');
+                }
+            }
+        })();
+    </script>
 </head>
 <body>
     <div id="app" class="app">

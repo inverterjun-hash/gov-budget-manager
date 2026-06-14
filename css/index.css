@@ -2323,7 +2323,7 @@ body.is-locked .header__select:disabled {
     .sidebar__actions,
     .sidebar__footer,
     .sidebar__lock-wrap,
-    .sidebar__gdrive,
+    .sidebar__gdrive-wrap,
     .sidebar__rcms-btn {
         display: none !important;
     }
@@ -2497,7 +2497,7 @@ body.is-locked .header__select:disabled {
         position: fixed;
         bottom: 75px;
         right: 16px;
-        z-index: 150;
+        z-index: 250;
         background: linear-gradient(135deg, #3b82f6, #8b5cf6);
         color: white;
         border: none;
