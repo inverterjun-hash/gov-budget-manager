@@ -125,7 +125,8 @@ const IntegratedDashboard = (() => {
                 <span style="font-size:0.78rem;color:var(--text-muted)">💡 통합 대시보드는 조회 전용입니다. 정보 수정은 각 과제 대시보드에서 진행해주세요.</span>
             </div>
             <div class="section-card__body">
-                <table class="data-table" id="summary-table">
+                <div class="table-wrapper">
+                    <table class="data-table" id="summary-table">
                     <thead>
                         <tr>
                             <th style="min-width:140px">구 분</th>
@@ -159,6 +160,7 @@ const IntegratedDashboard = (() => {
                         </tr>
                     </tfoot>
                 </table>
+                </div>
             </div>
         </div>`;
     }

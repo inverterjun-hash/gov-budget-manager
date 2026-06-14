@@ -299,7 +299,8 @@ const Dashboard = (() => {
                 <span style="font-size:0.78rem;color:var(--text-muted)">💡 배정예산을 클릭하면 직접 수정할 수 있습니다</span>
             </div>
             <div class="section-card__body">
-                <table class="data-table" id="summary-table">
+                <div class="table-wrapper">
+                    <table class="data-table" id="summary-table">
                     <thead>
                         <tr>
                             <th style="min-width:100px">구 분</th>
@@ -336,6 +337,7 @@ const Dashboard = (() => {
                         </tr>
                     </tfoot>
                 </table>
+                </div>
             </div>
         </div>`;
     }

@@ -188,7 +188,8 @@ const Expenses = (() => {
         `).join('');
 
         return `
-        <table class="data-table" id="expense-table">
+        <div class="table-wrapper">
+            <table class="data-table" id="expense-table">
             <thead>
                 <tr>
                     <th class="text-center" style="width:40px">
@@ -216,7 +217,8 @@ const Expenses = (() => {
                     <td></td>
                 </tr>
             </tfoot>
-        </table>`;
+        </table>
+        </div>`;
     }
 
     // ── Add / Edit Expense Modal ─────────────────────────────
