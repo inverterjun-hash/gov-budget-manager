@@ -60,6 +60,14 @@ const Dashboard = (() => {
                 </div>
                 <div class="kpi-card__sub">이체완료 항목 합계</div>
             </div>
+            <div class="kpi-card kpi-card--pending">
+                <div class="kpi-card__label">이체 대기 금액</div>
+                <div class="kpi-card__value" style="color:#f59e0b">
+                    <span class="count-up" data-target="${summary.pendingAmount || 0}" data-suffix="">0</span>
+                    <span class="kpi-card__unit">원</span>
+                </div>
+                <div class="kpi-card__sub">작성됨 (미이체) 합계</div>
+            </div>
             <div class="kpi-card kpi-card--remaining">
                 <div class="kpi-card__label">총 잔여예산</div>
                 <div class="kpi-card__value ${summary.totalRemaining < 0 ? 'amount-negative' : ''}">

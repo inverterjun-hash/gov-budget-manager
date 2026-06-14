@@ -501,11 +501,18 @@ const Store = (() => {
             ? Math.round((totalUsed / totalBudget) * 1000) / 10
             : 0;
 
+        const pid = projectId || data.currentProjectId;
+        const yid = yearId || data.currentYearId;
+        const pendingAmount = data.expenses
+            .filter(e => e.projectId === pid && e.yearId === yid && !e.transferred)
+            .reduce((sum, e) => sum + e.amount, 0);
+
         return {
             totalBudget,
             totalUsed,
             totalRemaining,
             totalRate,
+            pendingAmount,
             color: getExecutionColor(totalRate),
             status: getExecutionStatus(totalRate)
         };
@@ -747,6 +754,10 @@ const Store = (() => {
         const totalUsed = list.reduce((s, i) => s + i.used, 0);
         const totalRemaining = totalBudget - totalUsed;
         const totalRate = totalBudget > 0 ? (totalUsed / totalBudget) * 100 : 0;
+        
+        const pendingAmount = data.expenses
+            .filter(e => !e.transferred)
+            .reduce((sum, e) => sum + e.amount, 0);
 
         return {
             groups: list.sort((a, b) => b.budget - a.budget),
@@ -755,6 +766,7 @@ const Store = (() => {
                 totalUsed,
                 totalRemaining,
                 totalRate,
+                pendingAmount,
                 color: getExecutionColor(totalRate),
                 status: getExecutionStatus(totalRate)
             }

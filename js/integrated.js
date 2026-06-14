@@ -55,6 +55,14 @@ const IntegratedDashboard = (() => {
                 </div>
                 <div class="kpi-card__sub">전체 과제 이체완료 합계</div>
             </div>
+            <div class="kpi-card kpi-card--pending">
+                <div class="kpi-card__label">통합 이체 대기 금액</div>
+                <div class="kpi-card__value" style="color:#f59e0b">
+                    <span class="count-up" data-target="${total.pendingAmount || 0}" data-suffix="">0</span>
+                    <span class="kpi-card__unit">원</span>
+                </div>
+                <div class="kpi-card__sub">전체 작성됨 (미이체) 합계</div>
+            </div>
             <div class="kpi-card kpi-card--remaining">
                 <div class="kpi-card__label">통합 총 잔여예산</div>
                 <div class="kpi-card__value ${total.totalRemaining < 0 ? 'amount-negative' : ''}">

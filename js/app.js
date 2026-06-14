@@ -144,6 +144,11 @@ const App = (() => {
             if (headerYearTabs) headerYearTabs.style.visibility = 'visible';
         }
 
+        // Scroll to top
+        window.scrollTo(0, 0);
+        const mainEl = document.querySelector('.main');
+        if (mainEl) mainEl.scrollTo(0, 0);
+
         // Render content
         if (tab === 'dashboard') {
             Dashboard.render();
